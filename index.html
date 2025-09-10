@@ -143,58 +143,46 @@
 </footer>
 
 <script>
-  // ハンバーガー
-  const hamburger = document.querySelector('.hamburger');
-  const nav = document.querySelector('.main-nav');
-  hamburger.addEventListener('click',()=>nav.classList.toggle('open'));
+const sections = document.querySelectorAll('section[data-slides]');
 
-  // ヘッダー背景変化
-  const header = document.querySelector('.site-header');
-  window.addEventListener('scroll',()=>{ header.style.background = (window.scrollY>50)?'rgba(0,0,0,0.95)':'rgba(0,0,0,0.7)'; });
+// 現在のスクロール量と前フレームのスクロール量
+let lastScrollY = window.scrollY;
+let ticking = false;
 
-  // 背景スライドショー
-  const sections = document.querySelectorAll('section[data-slides]');
-  sections.forEach(sec=>{
-    const slides = sec.dataset.slides.split(',');
-    let index=0;
-    let currentImg=null;
+// セクションの動きを滑らかにする関数
+function updateSections() {
+  sections.forEach(sec => {
+    const rect = sec.getBoundingClientRect();
+    const centerOffset = rect.top + rect.height/2 - window.innerHeight/2;
 
-    const firstImg=document.createElement('img');
-    firstImg.src=slides[0];
-    firstImg.classList.add('bg-slide','show');
-    sec.appendChild(firstImg);
-    currentImg=firstImg;
+    // 中央付近でスクロールを少し減速
+    const damp = Math.min(Math.abs(centerOffset)/200, 1); // 0〜1
+    const offsetY = -centerOffset * (1 - damp);
 
-    if(slides.length>1){
-      setInterval(()=>{
-        index=(index+1)%slides.length;
-        const nextImg=document.createElement('img');
-        nextImg.src=slides[index];
-        nextImg.classList.add('bg-slide');
-        sec.appendChild(nextImg);
-        setTimeout(()=>{
-          nextImg.classList.add('show');
-          currentImg.classList.remove('show');
-          setTimeout(()=>{ currentImg.remove(); currentImg=nextImg; },1000);
-        },50);
-      },5000);
-    }
+    // 小さな浮遊・弾み感
+    const sway = Math.sin(window.scrollY / 200 + sec.dataset.index * 0.5) * 5;
+
+    sec.style.transform = `translateY(${offsetY + sway}px)`;
   });
+  ticking = false;
+}
 
-  // セクション中央でスクロールもたつき＋浮き揺れ
-  window.addEventListener('scroll',()=>{
-    sections.forEach(sec=>{
-      const rect = sec.getBoundingClientRect();
-      const offset = Math.sin(rect.top / window.innerHeight * Math.PI/6) * 10; // 少し上下揺れ
-      sec.style.transform = `translateY(${offset}px)`;
+// スクロールイベント
+window.addEventListener('scroll', () => {
+  lastScrollY = window.scrollY;
+  if (!ticking) {
+    window.requestAnimationFrame(updateSections);
+    ticking = true;
+  }
+});
 
-      // 中央に来たらスクロール抑制
-      if(rect.top > -50 && rect.top < 50){
-        window.scrollBy(0, rect.top*0.2); // わずかに戻す
-      }
-    });
-  });
+// 初期化：各セクションにインデックスを付与
+sections.forEach((sec, i) => sec.dataset.index = i);
+
+// 最初の呼び出しで表示位置を補正
+updateSections();
 </script>
+
 
 </body>
 </html>
